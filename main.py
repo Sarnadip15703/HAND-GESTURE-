@@ -60,7 +60,7 @@ while True:
 
         # Gesture 3 -show pointer
         if fingers == [0, 1, 1, 0, 0]:
-            cv2.circle(imgCurr, indexFinger, 12, (0, 0, 255), cv2.FILLED)  
+            cv2.circle(imgCurr, indexFinger, 12, (0, 0, 255), cv2.FILLED)
 
     if buttonPressed:
         buttonCounter += 1
