@@ -34,7 +34,7 @@ if len(os.listdir(folderPath)) == 0:
 # Load images from the folder
 images = sorted(os.listdir(folderPath), key=len)
 imgNum = 0
-hs, ws = int(150 * 1), int(250 * 1)
+hs, ws = int(170 * 1), int(190 * 1)
 gestureThreshold = 500
 buttonPressed = False
 buttonCounter = 0
