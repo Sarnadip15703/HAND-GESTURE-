@@ -13,12 +13,12 @@ cap.set(4, height)
 images = sorted(os.listdir(folderPath), key=len)
 imgNum = 0
 hs, ws = int(150*1), int(250*1)
-gestureThreshold = 300
+gestureThreshold = 500
 buttonPressed = False
 buttonCounter = 0
-buttonDelay = 30
+buttonDelay = 15
 
-detector = HandDetector(detectionCon=0.8, maxHands=2)
+detector = HandDetector(detectionCon=0.8, maxHands=1)
 
 while True:
     success, frame = cap.read()
@@ -44,15 +44,15 @@ while True:
         
         if cy <= gestureThreshold: #If hand is at height of face
             # gesture 1 - left
-            if fingers == [1, 0, 0, 0, 0]:
-                print("Left")
+            if fingers == [0, 1, 0, 0, 0]:
+                print("Left", imgNum)
                 if imgNum > 0:
                     buttonPressed = True
                     imgNum -= 1
 
             #gesture 2 - right
-            if fingers == [0, 0, 0, 0, 1]:
-                print("right")
+            if fingers == [0, 0, 0, 0, 1] and lmlist[20][0] > lmlist[19][0]:
+                print("right", imgNum)
                 if imgNum < len(images)-1:
                     buttonPressed = True
                     imgNum += 1
