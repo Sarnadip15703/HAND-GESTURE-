@@ -5,7 +5,7 @@ from cvzone.HandTrackingModule import HandDetector
 import numpy as np
 
 # Initialize variables
-width, height = 1280, 720
+width, height = 720, 480
 folderPath = "documents/images"  # Directory where images will be stored
 pdfPath = "documents\SIT_HACKAVERSE_2025_PPT_TEMPLATE[1].pdf"  # Path to the PDF file
 
@@ -43,7 +43,7 @@ annotations = [[]]
 annotationNumber = 0
 annotationStart = False
 
-detector = HandDetector(detectionCon=0.8, maxHands=1)
+detector = HandDetector(detectionCon=0.9, maxHands=1)
 
 # Add variables to track hand movement
 prev_cx = 0
@@ -55,6 +55,11 @@ while True:
     success, frame = cap.read()
 
     frame = cv2.flip(frame, 1)
+    
+    # Draw the vertical lines for the neutral zone
+    cv2.line(frame, (neutral_zone, 0), (neutral_zone, height), (255, 0, 0), 2)  # Left boundary
+    cv2.line(frame, (width - neutral_zone, 0), (width - neutral_zone, height), (0, 0, 255), 2)  # Right boundary
+   
     pathFullImage = os.path.join(folderPath, images[imgNum])
     imgCurr = cv2.imread(pathFullImage)
 
@@ -63,7 +68,7 @@ while True:
         print(f"Error: Unable to load image at {pathFullImage}")
         break
 
-    imgCurr = cv2.resize(imgCurr, (960, 540))
+    imgCurr = cv2.resize(imgCurr, (1280, 720))
 
     hands, img = detector.findHands(frame)
 
@@ -87,7 +92,7 @@ while True:
             # Detect waving gesture
             if abs(cx - prev_cx) > movement_threshold:
                 # Gesture 1 - left
-                if fingers == [0, 1, 1, 1, 1] and cx < prev_cx and direction != "left" and cx < neutral_zone:  # Hand moved left
+                if fingers == [1, 1, 1, 1, 1] and cx < prev_cx and direction != "left" and cx < neutral_zone:  # Hand moved left
                     print("Wave Left")
                     if imgNum > 0:
                         buttonPressed = True
@@ -98,7 +103,7 @@ while True:
                     direction = "left"  # Lock the direction to left
 
                 # Gesture 2 - right
-                elif fingers == [0, 1, 1, 1, 1] and cx > prev_cx and direction != "right" and cx > (width - neutral_zone):  # Hand moved right
+                elif fingers == [1, 1, 1, 1, 1] and cx > prev_cx and direction != "right" and cx > (width - neutral_zone):  # Hand moved right
                     print("Wave Right")
                     if imgNum < len(images) - 1:
                         buttonPressed = True
