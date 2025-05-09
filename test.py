@@ -1,139 +1,173 @@
+import fitz  # PyMuPDF
+from cvzone.HandTrackingModule import HandDetector
 import cv2
 import os
-from cvzone.HandTrackingModule import HandDetector
 import numpy as np
+import time
 
+# Parameters
 width, height = 1280, 720
-folderPath = "Presentation"
+gestureThreshold = 300
 
-cap = cv2.VideoCapture(0)
+# Paths
+folderPath = "documents/images"  # Directory where images will be stored
+pdfPath = "documents/SIT_HACKAVERSE_2025_PPT_TEMPLATE[1].pdf"  # Path to the PDF file
+videoPath = "movement.mp4"  # Path to the video file
+
+# Video Setup
+cap = cv2.VideoCapture(videoPath)  # Use the video file instead of webcam
 cap.set(3, width)
 cap.set(4, height)
 
-images = sorted(os.listdir(folderPath), key=len)
-imgNum = 0
-hs, ws = int(150*1), int(250*1)
-gestureThreshold = 500
-buttonPressed = False
-buttonCounter = 0
-buttonDelay = 30
+# Ensure the images directory exists
+if not os.path.exists(folderPath):
+    os.makedirs(folderPath)
+
+# Extract PDF pages as images
+def extract_pdf_pages(pdfPath, outputFolder):
+    pdf = fitz.open(pdfPath)
+    for pageNum in range(len(pdf)):
+        page = pdf[pageNum]
+        pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))  # Render at 2x resolution
+        outputPath = os.path.join(outputFolder, f"page_{pageNum + 1}.png")
+        pix.save(outputPath)
+    pdf.close()
+
+# Extract pages if not already extracted
+if len(os.listdir(folderPath)) == 0:
+    extract_pdf_pages(pdfPath, folderPath)
+
+# Load images from the folder
+pathImages = sorted(os.listdir(folderPath), key=len)
+imgNumber = 0
 annotations = [[]]
-annotationNumber = 0
+annotationNumber = -1
 annotationStart = False
+hs, ws = int(120 * 1), int(213 * 1)  # width and height of small image
 
-detector = HandDetector(detectionCon=0.8, maxHands=1)
+# Hand Detector
+detectorHand = HandDetector(detectionCon=0.8, maxHands=1)
 
-# Add variables to track hand movement
-prev_cx = 0
-movement_threshold = 20  # Minimum movement in pixels to detect a wave
-neutral_zone = width // 3  # Define a neutral zone in the middle of the screen
-direction = None  # Tracks the last detected direction ('left' or 'right')
+# Set the target frame rate
+target_fps = 30
+frame_duration = 1 / target_fps  # Duration of each frame in seconds
+
+# Initialize variables for FPS calculation and button delay
+prevTime = time.time()
+buttonPressed = False
+buttonDelay = 30  # Delay in frames to prevent rapid transitions
+buttonCounter = 0
 
 while True:
-    success, frame = cap.read()
+    # Get the start time of the frame
+    start_time = time.time()
 
-    frame = cv2.flip(frame, 1)
-    pathFullImage = os.path.join(folderPath, images[imgNum])
-    imgCurr = cv2.imread(pathFullImage)
+    # Get image frame from the video
+    success, img = cap.read()
+    if not success:
+        print("End of video reached.")
+        break
 
-    hands, img = detector.findHands(frame)
+    img = cv2.resize(img, (width, height))  # Resize video frame to match presentation size
+    pathFullImage = os.path.join(folderPath, pathImages[imgNumber])
+    imgCurrent = cv2.imread(pathFullImage)
 
-    cv2.line(frame, (0, gestureThreshold), (width, gestureThreshold), (0, 255, 0), 10)
+    # Check if the image was loaded successfully
+    if imgCurrent is None:
+        print(f"Error: Unable to load image at {pathFullImage}")
+        break
 
-    if hands and buttonPressed is False:
+    imgCurrent = cv2.resize(imgCurrent, (1280, 740))
+
+    # Find the hand and its landmarks
+    hands, img = detectorHand.findHands(img)  # with draw
+
+    # Draw Gesture Threshold line
+    cv2.line(img, (0, gestureThreshold), (width, gestureThreshold), (0, 255, 0), 10)
+
+    if hands and not buttonPressed:  # If hand is detected and button is not pressed
         hand = hands[0]
-        fingers = detector.fingersUp(hand)
-        
-        # Use interpolated values for x and y
-        lmlist = hand['lmList']  # List of landmarks
-        xVal = int(np.interp(lmlist[20][0], [width // 2, width], [0, width]))
-        yVal = int(np.interp(lmlist[20][1], [150, height - 150], [0, height]))
-        indexFinger = (xVal, yVal)
+        cx, cy = hand["center"]
+        lmList = hand["lmList"]  # List of 21 Landmark points
+        fingers = detectorHand.fingersUp(hand)  # List of which fingers are up
 
-        # Update cx and cy with interpolated values
-        cx, cy = xVal, yVal
+        # Constrain values for easier drawing
+        xVal = int(np.interp(lmList[8][0], [width // 2, width], [0, width]))
+        yVal = int(np.interp(lmList[8][1], [150, height - 150], [0, height]))
+        indexFinger = xVal, yVal
 
-        # Check if the hand is above the gesture threshold
-        if cy <= gestureThreshold:
-            # Detect waving gesture
-            if abs(cx - prev_cx) > movement_threshold:
-                # Gesture 1 - left
-                if fingers == [0,1,1,1,1] and cx < prev_cx and direction != "left" and cx < neutral_zone:  # Hand moved left
-                    print(cx, prev_cx)
-                    print("Wave Left")
-                    if imgNum > 0:
-                        buttonPressed = True                         
-                        annotations = [[]]
-                        annotationNumber = 0
-                        annotationStart = False
-                        imgNum -= 1
-                    direction = "left"  # Lock the direction to left
+        if cy <= gestureThreshold:  # If hand is at the height of the face
+            if fingers == [1, 0, 0, 0, 0]:  # Gesture for "Left"
+                print("Left")
+                buttonPressed = True
+                if imgNumber > 0:
+                    imgNumber -= 1
+                    annotations = [[]]
+                    annotationNumber = -1
+                    annotationStart = False
+            if fingers == [0, 0, 0, 0, 1]:  # Gesture for "Right"
+                print("Right")
+                buttonPressed = True
+                if imgNumber < len(pathImages) - 1:
+                    imgNumber += 1
+                    annotations = [[]]
+                    annotationNumber = -1
+                    annotationStart = False
 
-                # Gesture 2 - right
-                elif fingers == [0,1,1,1,1] and cx > prev_cx and direction != "right" and cx > (width - neutral_zone):  # Hand moved right
-                    print(cx, prev_cx)
-                    print("Wave Right")
-                    if imgNum < len(images) - 1:
-                        buttonPressed = True
-                        annotations = [[]]
-                        annotationNumber = 0
-                        annotationStart = False
-                        imgNum += 1
-                    direction = "right"  # Lock the direction to right
+        if fingers == [0, 1, 1, 0, 0]:  # Gesture for "Pointer"
+            cv2.circle(imgCurrent, indexFinger, 12, (0, 0, 255), cv2.FILLED)
 
-        # Gesture 3 -show pointer
-        if fingers == [0, 1, 1, 0, 0]:  
-            cv2.circle(imgCurr, indexFinger, 12, (0, 0, 255), cv2.FILLED)
-
-        # Gesture 4 -draw pointer
-        if fingers == [0, 1, 0, 0, 0]:  
-            if annotationStart == False:
+        if fingers == [0, 1, 0, 0, 0]:  # Gesture for "Draw"
+            if annotationStart is False:
                 annotationStart = True
                 annotationNumber += 1
                 annotations.append([])
-            cv2.circle(imgCurr, indexFinger, 12, (0, 0, 255), cv2.FILLED)
             annotations[annotationNumber].append(indexFinger)
+            cv2.circle(imgCurrent, indexFinger, 12, (0, 0, 255), cv2.FILLED)
+
         else:
             annotationStart = False
 
-        # Gesture 5 - erase
-        if fingers == [0, 1, 1, 1, 0]:
+        if fingers == [0, 1, 1, 1, 0]:  # Gesture for "Erase"
             if annotations:
-                if annotationNumber >= 0:
-                    annotations.pop()
-                    annotationNumber -= 1
-                    buttonPressed = True
-
-
-        # Reset the direction lock only when the hand enters the neutral zone
-        if neutral_zone < cx < (width - neutral_zone):
-            direction = None
-
-        # Update the previous center x-coordinate
-        prev_cx = cx
+                annotations.pop(-1)
+                annotationNumber -= 1
+                buttonPressed = True
 
     if buttonPressed:
         buttonCounter += 1
         if buttonCounter > buttonDelay:
             buttonPressed = False
             buttonCounter = 0
-            
-    
-    # Draw the annotations on the current image
-    for i in range(len(annotations)):
-        for j in range(len(annotations[i])):
+
+    for i, annotation in enumerate(annotations):
+        for j in range(len(annotation)):
             if j != 0:
-                cv2.line(imgCurr, annotations[i][j-1], annotations[i][j], (0, 0, 255), 12)
+                cv2.line(imgCurrent, annotation[j - 1], annotation[j], (0, 0, 200), 12)
 
+    imgSmall = cv2.resize(img, (ws, hs))
+    h, w, _ = imgCurrent.shape
+    imgCurrent[0:hs, w - ws: w] = imgSmall
 
-    imgSmall = cv2.resize(frame, (ws, hs))
-    h, w, _ = imgCurr.shape
+    # Calculate FPS
+    currTime = time.time()
+    fps = 1 / (currTime - prevTime)
+    prevTime = currTime
 
-    imgCurr[0:hs, w-ws:w] = imgSmall
+    # Display FPS on the screen
+    cv2.putText(img, f"FPS: {int(fps)}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-    cv2.imshow("Display picture", frame)
-    cv2.imshow("Presentation", imgCurr)
+    cv2.imshow("Slides", imgCurrent)
+    cv2.imshow("Video", img)
 
-    k = cv2.waitKey(1)
-    if k == ord('q'):
+    # Calculate the time taken to process the frame
+    elapsed_time = time.time() - start_time
+
+    # Add a delay to maintain the target frame rate
+    wait_time = max(1, int((frame_duration - elapsed_time) * 1000))
+    key = cv2.waitKey(wait_time)
+    if key == ord('q'):
         break
+
+cap.release()
+cv2.destroyAllWindows()

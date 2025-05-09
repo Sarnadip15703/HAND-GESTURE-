@@ -34,7 +34,7 @@ if len(os.listdir(folderPath)) == 0:
 # Load images from the folder
 images = sorted(os.listdir(folderPath), key=len)
 imgNum = 0
-hs, ws = int(170 * 1), int(190 * 1)
+hs, ws = int(120 * 1), int(190 * 1)
 gestureThreshold = 500
 buttonPressed = False
 buttonCounter = 0
@@ -63,7 +63,7 @@ while True:
         print(f"Error: Unable to load image at {pathFullImage}")
         break
 
-    imgCurr = cv2.resize(imgCurr, (960, 540))
+    imgCurr = cv2.resize(imgCurr, (1280, 740))
 
     hands, img = detector.findHands(frame)
 
@@ -87,7 +87,7 @@ while True:
             # Detect waving gesture
             if abs(cx - prev_cx) > movement_threshold:
                 # Gesture 1 - left
-                if fingers == [0, 1, 1, 1, 1] and cx < prev_cx and direction != "left" and cx < neutral_zone:  # Hand moved left
+                if fingers == [0, 1, 1, 1, 1] and cx < prev_cx and direction != "left" and cx < (width - neutral_zone):  # Hand moved left
                     print("Wave Left")
                     if imgNum > 0:
                         buttonPressed = True
