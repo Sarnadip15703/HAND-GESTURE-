@@ -11,7 +11,7 @@ gestureThreshold = 300
 
 # Paths
 folderPath = "documents/images"  # Directory where images will be stored
-pdfPath = "documents/SIT_HACKAVERSE_2025_PPT_TEMPLATE[1].pdf"  # Path to the PDF file
+pdfPath = "documents\SIT_HACKAVERSE_2025_PPT_TEMPLATE[1].pdf"  # Path to the PDF file
 videoPath = "movement.mp4"  # Path to the video file
 
 # Video Setup
