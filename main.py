@@ -111,6 +111,10 @@ while True:
                     annotationNumber = -1
                     annotationStart = False
 
+        if fingers == [0, 1, 0, 0, 1]:
+            time.sleep(1)
+            break
+
         if fingers == [0, 1, 1, 0, 0]:
             cv2.circle(imgCurrent, indexFinger, 12, (0, 0, 255), cv2.FILLED)
 
