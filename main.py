@@ -16,7 +16,7 @@ cap.set(4, height)
 
 # Paths
 folderPath = "documents/images"  # Directory where images will be stored
-pdfPath = "documents/SIT_HACKAVERSE_2025_PPT_TEMPLATE[1].pdf"  # Path to the PDF file
+pdfPath = "documents/Project_PPT_sample[1] (1).pdf"  # Path to the PDF file
 
 os.makedirs(folderPath)
 
@@ -151,7 +151,9 @@ while True:
 
     imgSmall = cv2.resize(img, (ws, hs))
     h, w, _ = imgCurrent.shape
-    imgCurrent[0:hs, w - ws: w] = imgSmall
+    
+    #imgCurrent[0:hs, w - ws: w] = imgSmall
+    imgCurrent[h - hs:h, w - ws:w] = imgSmall
 
     # Calculate FPS
     currTime = time.time()
