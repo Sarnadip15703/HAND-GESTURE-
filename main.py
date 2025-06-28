@@ -3,11 +3,11 @@ import cv2
 import os
 import numpy as np
 import time
+import shutil
 
 # Parameters
 width, height = 1280, 720
 gestureThreshold = 500
-folderPath = "Presentation"
 
 # Camera Setup
 cap = cv2.VideoCapture(0)
@@ -16,10 +16,9 @@ cap.set(4, height)
 
 # Paths
 folderPath = "documents/images"  # Directory where images will be stored
-pdfPath = "documents/SIT_HACKAVERSE_2025_PPT_TEMPLATE[1].pdf"  # Path to the PDF file
+pdfPath = "documents/Project_PPT_sample[1] (1).pdf"  # Path to the PDF file
 
-if not os.path.exists(folderPath):
-    os.makedirs(folderPath)
+os.makedirs(folderPath)
 
 # Extract PDF pages as images
 def extract_pdf_pages(pdfPath, outputFolder):
@@ -152,7 +151,9 @@ while True:
 
     imgSmall = cv2.resize(img, (ws, hs))
     h, w, _ = imgCurrent.shape
-    imgCurrent[0:hs, w - ws: w] = imgSmall
+    
+    #imgCurrent[0:hs, w - ws: w] = imgSmall
+    imgCurrent[h - hs:h, w - ws:w] = imgSmall
 
     # Calculate FPS
     currTime = time.time()
@@ -174,6 +175,8 @@ while True:
     key = cv2.waitKey(wait_time)
     if key == ord('q'):
         break
+
+shutil.rmtree(folderPath)
 
 cap.release()
 cv2.destroyAllWindows()
