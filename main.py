@@ -4,6 +4,7 @@ import os
 import numpy as np
 import time
 import shutil
+import fitz  # PyMuPDF
 
 # Parameters
 width, height = 1280, 720
@@ -22,7 +23,7 @@ os.makedirs(folderPath)
 
 # Extract PDF pages as images
 def extract_pdf_pages(pdfPath, outputFolder):
-    import fitz  # PyMuPDF
+
     pdf = fitz.open(pdfPath)
     for pageNum in range(len(pdf)):
         page = pdf[pageNum]
